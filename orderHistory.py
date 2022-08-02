@@ -1,10 +1,11 @@
 import MetaTrader5 as mt5
+import time
 import json
 from cuentas import(cuentas) # Base de datos quemada, se elimina cuando se tenga las credenciales desde HTTP
 from datetime import datetime # Para ejecutar con ciclo while, se elimina cuando se acondicione la ejecución, ya sea 
 #con un tiempo definido o cada vez que se haga un login(ideal esta opción)
 
-from path import base_path
+#from path import base_path
 
 # declaramos variables de diccionario a usar
 usuario=cuentas["user"] #Pendiente variable desde petición HTTP desde el formulario de login
@@ -20,7 +21,8 @@ print("MetaTrader5 package version: ",mt5.__version__)
 from_date=datetime(2020,1,1)
 to_date=datetime(2023,8,1)
 lists=[]
-if not mt5.initialize(Path=base_path):
+#if not mt5.initialize(Path=base_path):
+if not mt5.initialize():
     print("initialize() failed, error code =",mt5.last_error())
     quit()
 for k in range (len(usuario)):
@@ -31,7 +33,8 @@ for k in range (len(usuario)):
         if account_info!=None:
 
              # Obtener depositos y retiros 
-            arrayDeposit=[]             
+            arrayDeposit=[]
+            dateDeposit=[]                     
             deposits = mt5.history_deals_get(from_date, to_date, group="*,**")
             if deposits == None:
                 print("No deals, error code={}".format(mt5.last_error()))
@@ -39,9 +42,13 @@ for k in range (len(usuario)):
                 for deposit in deposits:
                     if deposit.price ==0 :
                         arrayDeposit =  arrayDeposit + [deposit.profit] 
+                        dateDep = time.ctime(deposit.time)
+                        dateDeposit = dateDeposit + [dateDep]
 
             # Obtener volumen transacciones cerradas   
                          
+            ticketClosedVolume=[]
+            dateClosedVolume=[]
             arrayClosedVolume=[]
             volumeClosedOrders = mt5.history_deals_get(from_date, to_date, group="*,**")
             if volumeClosedOrders == None:
@@ -49,7 +56,10 @@ for k in range (len(usuario)):
             elif len(volumeClosedOrders) > 0:
                 for volumeClosedOrder in volumeClosedOrders:
                     if volumeClosedOrder.profit !=0 and volumeClosedOrder.position_id!=0:
-                        arrayClosedVolume =  arrayClosedVolume + [volumeClosedOrder.volume] 
+                        arrayClosedVolume =  arrayClosedVolume + [volumeClosedOrder.volume]
+                        DateTrade = time.ctime(volumeClosedOrder.time)
+                        dateClosedVolume = dateClosedVolume + [DateTrade] 
+                        ticketClosedVolume = ticketClosedVolume + [volumeClosedOrder.ticket]
 
             # Obtener transacciones cerradas   
                          
@@ -64,6 +74,8 @@ for k in range (len(usuario)):
 
 
             # Obtener transacciones abiertas  
+            dateOpenProfit=[]
+            ticketOpenProfit = []
             arrayOpenProfit=[]
             openProfits = mt5.positions_get(group="*,**")
             if openProfits == None:
@@ -71,7 +83,11 @@ for k in range (len(usuario)):
             elif len(openProfits) > 0:
                 for openProfit in openProfits:
                     if openProfit.profit !=0:
-                        arrayOpenProfit =  arrayOpenProfit + [openProfit.profit]                                 
+                        arrayOpenProfit =  arrayOpenProfit + [openProfit.profit] 
+                        DateTradeOpen = time.ctime(openProfit.time)
+                        dateOpenProfit=dateOpenProfit+[DateTradeOpen]
+                        ticketOpenProfit=ticketOpenProfit+[openProfit.ticket]
+                                                       
 
 
             # Obtener volumen transacciones abiertas  
@@ -89,9 +105,14 @@ for k in range (len(usuario)):
                     "Balance":account_info.balance,
                     "Equidad":account_info.equity,
                     "ProfitsClosed":arrayDeals,  
-                    "VolumeClosed": arrayClosedVolume,                  
+                    "Date-closed-Trade": dateClosedVolume,
+                    "ticket-closed-Trade":ticketClosedVolume,
+                    "VolumeClosed": arrayClosedVolume,  
+                    "Date-Open-Trade": dateOpenProfit,
+                    "ticket-Open-Trade":ticketOpenProfit,                
                     "ProfitsOpen":arrayOpenProfit,
                     "VolumeOpen": arrayOpenVolume,
+                    "Date-Deposit-withdraw":dateDeposit,
                     "Deposits-withdraw":arrayDeposit
                     }
             lists.append(list)
