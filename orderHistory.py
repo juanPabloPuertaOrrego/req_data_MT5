@@ -33,87 +33,70 @@ for k in range (len(usuario)):
         if account_info!=None:
 
              # Obtener depositos y retiros 
-            arrayDeposit=[]
-            dateDeposit=[]                     
+            arrayDeposit=[]                  
             deposits = mt5.history_deals_get(from_date, to_date, group="*,**")
             if deposits == None:
                 print("No deals, error code={}".format(mt5.last_error()))
             elif len(deposits) > 0:
                 for deposit in deposits:
                     if deposit.price ==0 :
-                        arrayDeposit =  arrayDeposit + [deposit.profit] 
                         dateDep = time.ctime(deposit.time)
-                        dateDeposit = dateDeposit + [dateDep]
+                        arrayDeposit = arrayDeposit + [{
+                            "ticket-deposits-withdraw": deposit.ticket,
+                            "date-deposits-withdraw":dateDep,
+                            "deposits-withdraw": deposit.profit,
+                            "type":deposit.type
+                        }]
+
+
 
             # Obtener volumen transacciones cerradas   
-                         
-            ticketClosedVolume=[]
+            closeOperations=[]
             dateClosedVolume=[]
-            arrayClosedVolume=[]
             volumeClosedOrders = mt5.history_deals_get(from_date, to_date, group="*,**")
             if volumeClosedOrders == None:
                 print("No deals, error code={}".format(mt5.last_error()))
             elif len(volumeClosedOrders) > 0:
                 for volumeClosedOrder in volumeClosedOrders:
                     if volumeClosedOrder.profit !=0 and volumeClosedOrder.position_id!=0:
-                        arrayClosedVolume =  arrayClosedVolume + [volumeClosedOrder.volume]
                         DateTrade = time.ctime(volumeClosedOrder.time)
                         dateClosedVolume = dateClosedVolume + [DateTrade] 
-                        ticketClosedVolume = ticketClosedVolume + [volumeClosedOrder.ticket]
+                        closeOperations = closeOperations + [{
+                        "date-closed-trade":DateTrade, 
+                        "ticket-close-trade":volumeClosedOrder.ticket,
+                        "profit-close":volumeClosedOrder.profit,
+                        "volumen-closed":volumeClosedOrder.volume,
+                        "symbol":volumeClosedOrder.symbol,
+                        "type": volumeClosedOrder.type
+                        }]
 
-            # Obtener transacciones cerradas   
-                         
-            arrayDeals=[]
-            deals = mt5.history_deals_get(from_date, to_date, group="*,**")
-            if deals == None:
-                print("No deals, error code={}".format(mt5.last_error()))
-            elif len(deals) > 0:
-                for deal in deals:
-                    if deal.profit !=0 and deal.position_id!=0:
-                        arrayDeals =  arrayDeals + [deal.profit] 
-
-
-            # Obtener transacciones abiertas  
+            # Obtener transacciones abiertas 
+            openOperations=[]
             dateOpenProfit=[]
-            ticketOpenProfit = []
-            arrayOpenProfit=[]
             openProfits = mt5.positions_get(group="*,**")
             if openProfits == None:
                 print("No deals, error code={}".format(mt5.last_error()))
             elif len(openProfits) > 0:
                 for openProfit in openProfits:
                     if openProfit.profit !=0:
-                        arrayOpenProfit =  arrayOpenProfit + [openProfit.profit] 
                         DateTradeOpen = time.ctime(openProfit.time)
-                        dateOpenProfit=dateOpenProfit+[DateTradeOpen]
-                        ticketOpenProfit=ticketOpenProfit+[openProfit.ticket]
-                                                       
-
-
-            # Obtener volumen transacciones abiertas  
-            arrayOpenVolume=[]
-            volumeOpenOrders = mt5.positions_get(group="*,**")
-            if volumeOpenOrders  == None:
-                print("No deals, error code={}".format(mt5.last_error()))
-            elif len(volumeOpenOrders ) > 0:
-                for volumeOpenOrder in volumeOpenOrders :
-                    if volumeOpenOrder.profit !=0:
-                        arrayOpenVolume =  arrayOpenVolume + [volumeOpenOrder.volume]        
+                        openOperations=openOperations + [{
+                        "date-open-trade":DateTradeOpen, 
+                        "ticket-open-trade":openProfit.ticket,
+                        "profit-open":openProfit.profit,
+                        "volumen-open":openProfit.volume,
+                        "symbol":openProfit.symbol,
+                        "type":openProfit.type
+                        }] 
+    
             list={}   
             
             list = {"Usuario":usuario[k],
                     "Balance":account_info.balance,
                     "Equidad":account_info.equity,
-                    "ProfitsClosed":arrayDeals,  
-                    "Date-closed-Trade": dateClosedVolume,
-                    "ticket-closed-Trade":ticketClosedVolume,
-                    "VolumeClosed": arrayClosedVolume,  
-                    "Date-Open-Trade": dateOpenProfit,
-                    "ticket-Open-Trade":ticketOpenProfit,                
-                    "ProfitsOpen":arrayOpenProfit,
-                    "VolumeOpen": arrayOpenVolume,
-                    "Date-Deposit-withdraw":dateDeposit,
-                    "Deposits-withdraw":arrayDeposit
+                    "Deposits-withdraw":arrayDeposit,
+                    "open-operations": openOperations,
+                    "closed-operations":closeOperations
                     }
             lists.append(list)
 
